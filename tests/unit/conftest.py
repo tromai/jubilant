@@ -32,7 +32,8 @@ def mock_file(monkeypatch: pytest.MonkeyPatch) -> Generator[mocks.NamedTemporary
     monkeypatch.setattr('tempfile.NamedTemporaryFile', file_mock)
     yield file_mock
 
-@pytest.fixture(scope="function", autouse=True)
+
+@pytest.fixture(scope='function', autouse=True)
 def juju_normal(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr('shutil.which', lambda _: '/bin/juju') # type: ignore
+    monkeypatch.setattr('shutil.which', lambda _: '/bin/juju')  # type: ignore
     return
