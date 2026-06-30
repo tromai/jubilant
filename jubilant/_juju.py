@@ -1743,7 +1743,8 @@ class Juju:
                         )
                         unit_diff = _unit_status_diff(prev_unit_status, new_unit_status)
                         if unit_diff:
-                            unit_short = unit_name.removeprefix(name)
+                            # Will clean up this later
+                            unit_short = f'/{unit_name.rsplit(sep="/", maxsplit=1)[-1]}'
                             log = (
                                 logger_wait.error
                                 if new_unit_status.workload_status.current == 'error'
