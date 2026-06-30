@@ -19,7 +19,7 @@ from ._task import Task
 from ._version import Version
 from .modeltypes import ModelInfo
 from .secrettypes import RevealedSecret, Secret, SecretURI
-from .statustypes import AppStatus, Status
+from .statustypes import AppStatus, Status, UnitStatus
 from .unittypes import UnitInfo
 
 logger = logging.getLogger('jubilant')
@@ -1734,6 +1734,15 @@ class Juju:
                         else:
                             logger_wait.info('app status changed %s: %s', name, app_diff)
 
+                    for unit_name, new_unit_status in sorted(new_app_status.units.items()):
+                        prev_unit_status = prev_app_status.units.get(unit_name) if prev_app_status else None
+
+                        if unit_diff := _unit_status_diff(prev_unit_status, new_unit_status):
+                            if new_unit_status.workload_status.current == 'error':
+                                logger_wait.error('unit status changed %s: %s', unit_name.removeprefix(name), unit_diff)
+                            else:
+                                logger_wait.info('unit status changed %s: %s', unit_name.removeprefix(name), unit_diff)
+
                 # The verbose gron diff lines are always logged at DEBUG level.
                 diff = _status_diff(prev_status, status)
                 if diff:
@@ -1872,10 +1881,25 @@ def _app_status_diff(old: AppStatus | None, new: AppStatus) -> str | None:
 
     diff_line = None
     if new_current != old_current or new_message != old_message:
-        diff_line = f'{old_current} -> ' if old_current else ''
+        diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''
         diff_line += new_current
         if new_message:
-            diff_line += f': {new_message}'
+            diff_line += f' ({new_message})'
+
+    return diff_line
+
+def _unit_status_diff(old: UnitStatus | None, new: UnitStatus) -> str | None:
+    old_current, old_message = (
+        (old.workload_status.current, old.workload_status.message) if old is not None else ('', '')
+    )
+    new_current, new_message = (new.workload_status.current, new.workload_status.message)
+
+    diff_line = None
+    if new_current != old_current or new_message != old_message:
+        diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''
+        diff_line += new_current
+        if new_message:
+            diff_line += f' ({new_message})'
 
     return diff_line
 
