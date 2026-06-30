@@ -1722,26 +1722,34 @@ class Juju:
             status = Status._from_dict(result)
 
             if status != prev_status:
-                # Each app status is logged separately.
+                # Emit app status line, then only the units that changed.
                 # Sort according to app name to keep the output consistent.
                 for name, new_app_status in sorted(status.apps.items()):
                     prev_app_status = prev_status.apps.get(name) if prev_status else None
 
-                    if app_diff := _app_status_diff(prev_app_status, new_app_status):
-                        # We treat apps transitioning to error state as an ERROR level log.
-                        if new_app_status.app_status.current == 'error':
-                            logger_wait.error('app status changed %s: %s', name, app_diff)
-                        else:
-                            logger_wait.info('app status changed %s: %s', name, app_diff)
+                    app_diff = _app_status_diff(prev_app_status, new_app_status)
+                    if app_diff:
+                        # Whether the app line is error level depends on the app status.
+                        log = (
+                            logger_wait.error
+                            if new_app_status.app_status.current == 'error'
+                            else logger_wait.info
+                        )
+                        log('app status changed %s: %s', name, app_diff)
 
                     for unit_name, new_unit_status in sorted(new_app_status.units.items()):
-                        prev_unit_status = prev_app_status.units.get(unit_name) if prev_app_status else None
-
-                        if unit_diff := _unit_status_diff(prev_unit_status, new_unit_status):
-                            if new_unit_status.workload_status.current == 'error':
-                                logger_wait.error('unit status changed %s: %s', unit_name.removeprefix(name), unit_diff)
-                            else:
-                                logger_wait.info('unit status changed %s: %s', unit_name.removeprefix(name), unit_diff)
+                        prev_unit_status = (
+                            prev_app_status.units.get(unit_name) if prev_app_status else None
+                        )
+                        unit_diff = _unit_status_diff(prev_unit_status, new_unit_status)
+                        if unit_diff:
+                            unit_short = unit_name.removeprefix(name)
+                            log = (
+                                logger_wait.error
+                                if new_unit_status.workload_status.current == 'error'
+                                else logger_wait.info
+                            )
+                            log('---- %s: %s', unit_short, unit_diff)
 
                 # The verbose gron diff lines are always logged at DEBUG level.
                 diff = _status_diff(prev_status, status)
@@ -1879,14 +1887,12 @@ def _app_status_diff(old: AppStatus | None, new: AppStatus) -> str | None:
     )
     new_current, new_message = (new.app_status.current, new.app_status.message)
 
-    diff_line = None
     if new_current != old_current or new_message != old_message:
         diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''
-        diff_line += new_current
-        if new_message:
-            diff_line += f' ({new_message})'
+        diff_line += f'{new_current} ({new_message})'
+        return diff_line
+    return None
 
-    return diff_line
 
 def _unit_status_diff(old: UnitStatus | None, new: UnitStatus) -> str | None:
     old_current, old_message = (
@@ -1894,14 +1900,11 @@ def _unit_status_diff(old: UnitStatus | None, new: UnitStatus) -> str | None:
     )
     new_current, new_message = (new.workload_status.current, new.workload_status.message)
 
-    diff_line = None
     if new_current != old_current or new_message != old_message:
         diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''
-        diff_line += new_current
-        if new_message:
-            diff_line += f' ({new_message})'
-
-    return diff_line
+        diff_line += f'{new_current} ({new_message})'
+        return diff_line
+    return None
 
 
 def _status_diff(old: Status | None, new: Status) -> str:

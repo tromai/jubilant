@@ -168,7 +168,7 @@ Status(
             '',
             'active',
             'app started',
-            'unknown -> active: app started',
+            'unknown () -> active (app started)',
             id='old_status_no_message',
         ),
         pytest.param(
@@ -176,7 +176,7 @@ Status(
             'app started',
             'error',
             'something bad happened',
-            'active -> error: something bad happened',
+            'active (app started) -> error (something bad happened)',
             id='transition_to_error',
         ),
         pytest.param(
@@ -184,7 +184,7 @@ Status(
             'something bad happened',
             'active',
             'active again',
-            'error -> active: active again',
+            'error (something bad happened) -> active (active again)',
             id='transition_from_error',
         ),
         pytest.param(
@@ -192,7 +192,7 @@ Status(
             'installing software foo',
             'waiting',
             'installing software bah',
-            'waiting -> waiting: installing software bah',
+            'waiting (installing software foo) -> waiting (installing software bah)',
             id='same_status_different_message',
         ),
         pytest.param(
@@ -200,7 +200,7 @@ Status(
             'app stage 1',
             'error',
             'app stage 1',
-            'active -> error: app stage 1',
+            'active (app stage 1) -> error (app stage 1)',
             id='different_status_same_message',
         ),
         pytest.param(
@@ -208,7 +208,7 @@ Status(
             'app stage 1',
             'active',
             '',
-            'active -> active',
+            'active (app stage 1) -> active ()',
             id='new_status_empty_message',
         ),
     ],
@@ -251,13 +251,13 @@ def test_app_status_diff(
         pytest.param(
             'active',
             'app started',
-            'active: app started',
+            'active (app started)',
             id='to_active',
         ),
         pytest.param(
             'active',
             '',
-            'active',
+            'active ()',
             id='to_active_no_message',
         ),
     ],
