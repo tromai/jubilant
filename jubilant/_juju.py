@@ -1739,6 +1739,17 @@ class Juju:
                             else logger_wait.info
                         )
                         log('app status changed %s: %s', name, app_diff)
+                    else:
+                        # App status doesn't change but unit status can change.
+                        message = (
+                            f'{new_app_status.app_status.current} '
+                            + f'({new_app_status.app_status.message})'
+                        )
+                        logger.info(
+                            'app status %s: %s',
+                            name,
+                            message,
+                        )
 
                     for unit_name, new_unit_status in sorted(new_app_status.units.items()):
                         prev_unit_status = (
