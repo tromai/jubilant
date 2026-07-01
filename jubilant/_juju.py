@@ -1727,6 +1727,9 @@ class Juju:
                 for name, new_app_status in sorted(status.apps.items()):
                     prev_app_status = prev_status.apps.get(name) if prev_status else None
 
+                    if not _app_or_units_changed(prev_app_status, new_app_status):
+                        continue
+
                     app_diff = _app_status_diff(prev_app_status, new_app_status)
                     if app_diff:
                         # Whether the app line is error level depends on the app status.
@@ -1880,6 +1883,17 @@ def _same_model(a: str | None, b: str | None) -> bool:
     if ua and ub and ua != ub:
         return False
     return True
+
+
+def _app_or_units_changed(old: AppStatus | None, new: AppStatus) -> bool:
+    """Return True if the app status or any unit status (current or message) changed."""
+    if _app_status_diff(old, new):
+        return True
+    for unit_name, new_unit in new.units.items():
+        old_unit = old.units.get(unit_name) if old else None
+        if _unit_status_diff(old_unit, new_unit):
+            return True
+    return False
 
 
 def _app_status_diff(old: AppStatus | None, new: AppStatus) -> str | None:
