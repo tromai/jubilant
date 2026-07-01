@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 import jubilant
 
 from .fake_statuses import DATABASE_WEBAPP_JSON, MINIMAL_STATUS, SNAPPASS_JSON
@@ -152,7 +154,135 @@ Status(
     assert eval(status_repr, jubilant.statustypes.__dict__) == status
 
 
-def test_diff():
+@pytest.mark.parametrize(
+    (
+        'old_current',
+        'old_message',
+        'new_current',
+        'new_message',
+        'expect',
+    ),
+    [
+        pytest.param(
+            'unknown',
+            '',
+            'active',
+            'app started',
+            'unknown () -> active (app started)',
+            id='old_status_no_message',
+        ),
+        pytest.param(
+            'active',
+            'app started',
+            'error',
+            'something bad happened',
+            'active (app started) -> error (something bad happened)',
+            id='transition_to_error',
+        ),
+        pytest.param(
+            'error',
+            'something bad happened',
+            'active',
+            'active again',
+            'error (something bad happened) -> active (active again)',
+            id='transition_from_error',
+        ),
+        pytest.param(
+            'waiting',
+            'installing software foo',
+            'waiting',
+            'installing software bah',
+            'waiting (installing software foo) -> waiting (installing software bah)',
+            id='same_status_different_message',
+        ),
+        pytest.param(
+            'active',
+            'app stage 1',
+            'error',
+            'app stage 1',
+            'active (app stage 1) -> error (app stage 1)',
+            id='different_status_same_message',
+        ),
+        pytest.param(
+            'active',
+            'app stage 1',
+            'active',
+            '',
+            'active (app stage 1) -> active ()',
+            id='new_status_empty_message',
+        ),
+    ],
+)
+def test_entity_status_diff(
+    old_current: str,
+    old_message: str,
+    new_current: str,
+    new_message: str,
+    expect: str,
+):
+    # It's simplest to test _entity_status_diff directly, even though it's not public.
+    old_json = json.loads(SNAPPASS_JSON)
+    old_json['applications']['snappass-test']['application-status']['current'] = old_current
+    old_json['applications']['snappass-test']['application-status']['message'] = old_message
+
+    new_json = json.loads(SNAPPASS_JSON)
+    new_json['applications']['snappass-test']['application-status']['current'] = new_current
+    new_json['applications']['snappass-test']['application-status']['message'] = new_message
+
+    old_status = jubilant.Status._from_dict(old_json)
+    new_status = jubilant.Status._from_dict(new_json)
+
+    assert (
+        jubilant._juju._entity_status_diff(
+            old_status.apps['snappass-test'].app_status,
+            new_status.apps['snappass-test'].app_status,
+        )
+        == expect
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        'new_current',
+        'new_message',
+        'expect',
+    ),
+    [
+        pytest.param(
+            'active',
+            'app started',
+            'active (app started)',
+            id='to_active',
+        ),
+        pytest.param(
+            'active',
+            '',
+            'active ()',
+            id='to_active_no_message',
+        ),
+    ],
+)
+def test_entity_status_diff_from_none(
+    new_current: str,
+    new_message: str,
+    expect: str,
+):
+    # It's simplest to test _entity_status_diff directly, even though it's not public.
+    new_json = json.loads(SNAPPASS_JSON)
+    new_json['applications']['snappass-test']['application-status']['current'] = new_current
+    new_json['applications']['snappass-test']['application-status']['message'] = new_message
+    new_status = jubilant.Status._from_dict(new_json)
+
+    assert (
+        jubilant._juju._entity_status_diff(
+            None,
+            new_status.apps['snappass-test'].app_status,
+        )
+        == expect
+    )
+
+
+def test_status_diff():
     # It's simplest to test _status_diff directly, even though it's not public.
     old_json = json.loads(DATABASE_WEBAPP_JSON)
     new_json = json.loads(DATABASE_WEBAPP_JSON)
