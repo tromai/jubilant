@@ -1734,7 +1734,7 @@ class Juju:
                             if new_app_status.app_status.current == 'error'
                             else logger_wait.info
                         )
-                        log('app status changed %s: %s', name, app_diff)
+                        log('[%s] status changed: %s', name, app_diff)
 
                     for unit_name, new_unit_status in sorted(new_app_status.units.items()):
                         prev_unit_status = (
@@ -1748,7 +1748,7 @@ class Juju:
                                 if new_unit_status.workload_status.current == 'error'
                                 else logger_wait.info
                             )
-                            log('unit status changed %s: %s', unit_name, unit_diff)
+                            log('[%s] status changed: %s', unit_name, unit_diff)
 
                 # The verbose gron diff lines are always logged at DEBUG level.
                 diff = _status_diff(prev_status, status)
