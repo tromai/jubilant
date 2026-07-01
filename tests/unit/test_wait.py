@@ -53,10 +53,10 @@ def test_logging_wait_info(run: mocks.Run, time: mocks.Time, caplog: pytest.LogC
     record = caplog.records[0]
     assert record.levelname == 'INFO'
     message = record.getMessage()
-    assert message == 'app status changed snappass-test: active (snappass started)'
+    assert message == '[snappass-test] status changed: active (snappass started)'
     unit_record = caplog.records[1]
     assert unit_record.levelname == 'INFO'
-    assert unit_record.getMessage() == '---- /0: active (snappass started)'
+    assert unit_record.getMessage() == '[snappass-test/0] status changed: active (snappass started)'
 
 
 def test_logging_wait_info_multiples(
@@ -93,10 +93,10 @@ def test_logging_wait_error(run: mocks.Run, time: mocks.Time, caplog: pytest.Log
     record = caplog.records[0]
     assert record.levelname == 'ERROR'
     message = record.getMessage()
-    assert message == 'app status changed snappass-test: error (something bad happened)'
+    assert message == '[snappass-test] status changed: error (something bad happened)'
     unit_record = caplog.records[1]
     assert unit_record.levelname == 'INFO'
-    assert unit_record.getMessage() == '---- /0: active (snappass started)'
+    assert unit_record.getMessage() == '[snappass-test/0] status changed: active (snappass started)'
 
 
 def test_with_model(run: mocks.Run, time: mocks.Time):
