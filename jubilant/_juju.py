@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Generator, Literal, Union, overload
+from typing import Any, Generator, Literal, Union, overload, Protocol
 
 from . import _pretty, _yaml
 from ._task import Task
@@ -1722,33 +1722,24 @@ class Juju:
             status = Status._from_dict(result)
 
             if status != prev_status:
-                # Emit app status line, then only the units that changed.
+                # Emit app and unit status lines, with unit changes nested under their app.
                 # Sort according to app name to keep the output consistent.
-                for name, new_app_status in sorted(status.apps.items()):
-                    prev_app_status = prev_status.apps.get(name) if prev_status else None
-
-                    app_diff = _app_status_diff(prev_app_status, new_app_status)
-                    if app_diff:
-                        log = (
-                            logger_wait.error
-                            if new_app_status.app_status.current == 'error'
-                            else logger_wait.info
+                prev_apps = prev_status.apps if prev_status else {}
+                for app_name, new_app in sorted(status.apps.items()):
+                    prev_app = prev_apps.get(app_name)
+                    _diff_and_log(
+                        app_name,
+                        prev_app.app_status if prev_app else None,
+                        new_app.app_status,
+                    )
+                    prev_units = prev_app.units if prev_app else {}
+                    for unit_name, new_unit in sorted(new_app.units.items()):
+                        prev_unit = prev_units.get(unit_name)
+                        _diff_and_log(
+                            unit_name,
+                            prev_unit.workload_status if prev_unit else None,
+                            new_unit.workload_status,
                         )
-                        log('[%s] status changed: %s', name, app_diff)
-
-                    for unit_name, new_unit_status in sorted(new_app_status.units.items()):
-                        prev_unit_status = (
-                            prev_app_status.units.get(unit_name) if prev_app_status else None
-                        )
-                        unit_diff = _unit_status_diff(prev_unit_status, new_unit_status)
-                        if unit_diff:
-                            # Will clean up this later
-                            log = (
-                                logger_wait.error
-                                if new_unit_status.workload_status.current == 'error'
-                                else logger_wait.info
-                            )
-                            log('[%s] status changed: %s', unit_name, unit_diff)
 
                 # The verbose gron diff lines are always logged at DEBUG level.
                 diff = _status_diff(prev_status, status)
@@ -1880,24 +1871,25 @@ def _same_model(a: str | None, b: str | None) -> bool:
     return True
 
 
-def _app_status_diff(old: AppStatus | None, new: AppStatus) -> str | None:
-    old_current, old_message = (
-        (old.app_status.current, old.app_status.message) if old is not None else ('', '')
-    )
-    new_current, new_message = (new.app_status.current, new.app_status.message)
-
-    if new_current != old_current or new_message != old_message:
-        diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''
-        diff_line += f'{new_current} ({new_message})'
-        return diff_line
-    return None
+def _diff_and_log(name: str, old: StatusEntity | None, new: StatusEntity) -> None:
+    diff = _entity_status_diff(old, new)
+    if not diff:
+        return
+    log = logger_wait.error if new.current == 'error' else logger_wait.info
+    log('[%s] status changed: %s', name, diff)
 
 
-def _unit_status_diff(old: UnitStatus | None, new: UnitStatus) -> str | None:
-    old_current, old_message = (
-        (old.workload_status.current, old.workload_status.message) if old is not None else ('', '')
-    )
-    new_current, new_message = (new.workload_status.current, new.workload_status.message)
+class StatusEntity(Protocol):
+    @property
+    def current(self) -> str: ...
+
+    @property
+    def message(self) -> str: ...
+
+
+def _entity_status_diff(old: StatusEntity | None, new: StatusEntity) -> str | None:
+    old_current, old_message = (old.current, old.message) if old is not None else ('', '')
+    new_current, new_message = new.current, new.message
 
     if new_current != old_current or new_message != old_message:
         diff_line = f'{old_current} ({old_message}) -> ' if old_current else ''

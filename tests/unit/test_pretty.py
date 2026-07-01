@@ -213,14 +213,14 @@ Status(
         ),
     ],
 )
-def test_app_status_diff(
+def test_entity_status_diff(
     old_current: str,
     old_message: str,
     new_current: str,
     new_message: str,
     expect: str,
 ):
-    # It's simplest to test _app_status_diff directly, even though it's not public.
+    # It's simplest to test _entity_status_diff directly, even though it's not public.
     old_json = json.loads(SNAPPASS_JSON)
     old_json['applications']['snappass-test']['application-status']['current'] = old_current
     old_json['applications']['snappass-test']['application-status']['message'] = old_message
@@ -233,9 +233,9 @@ def test_app_status_diff(
     new_status = jubilant.Status._from_dict(new_json)
 
     assert (
-        jubilant._juju._app_status_diff(
-            old_status.apps['snappass-test'],
-            new_status.apps['snappass-test'],
+        jubilant._juju._entity_status_diff(
+            old_status.apps['snappass-test'].app_status,
+            new_status.apps['snappass-test'].app_status,
         )
         == expect
     )
@@ -262,21 +262,21 @@ def test_app_status_diff(
         ),
     ],
 )
-def test_app_status_from_none(
+def test_entity_status_diff_from_none(
     new_current: str,
     new_message: str,
     expect: str,
 ):
-    # It's simplest to test _app_status_diff directly, even though it's not public.
+    # It's simplest to test _entity_status_diff directly, even though it's not public.
     new_json = json.loads(SNAPPASS_JSON)
     new_json['applications']['snappass-test']['application-status']['current'] = new_current
     new_json['applications']['snappass-test']['application-status']['message'] = new_message
     new_status = jubilant.Status._from_dict(new_json)
 
     assert (
-        jubilant._juju._app_status_diff(
+        jubilant._juju._entity_status_diff(
             None,
-            new_status.apps['snappass-test'],
+            new_status.apps['snappass-test'].app_status,
         )
         == expect
     )
