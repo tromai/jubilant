@@ -1743,13 +1743,12 @@ class Juju:
                         unit_diff = _unit_status_diff(prev_unit_status, new_unit_status)
                         if unit_diff:
                             # Will clean up this later
-                            unit_short = f'/{unit_name.rsplit(sep="/", maxsplit=1)[-1]}'
                             log = (
                                 logger_wait.error
                                 if new_unit_status.workload_status.current == 'error'
                                 else logger_wait.info
                             )
-                            log('---- %s: %s', unit_short, unit_diff)
+                            log('unit status changed %s: %s', unit_name, unit_diff)
 
                 # The verbose gron diff lines are always logged at DEBUG level.
                 diff = _status_diff(prev_status, status)
