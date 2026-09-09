@@ -12,6 +12,8 @@ import pytest
 
 import jubilant
 
+pytestmark = pytest.mark.dual
+
 # The entry point script installed by setuptools always lives in the same bin/
 # directory as the Python executable.  Using this path means we do not rely on
 # the venv being activated, PATH, or ``python -m jubilant`` (which requires a
@@ -41,9 +43,6 @@ def deploy_snappass(juju: jubilant.Juju) -> None:
 def deploy_ubuntu(juju: jubilant.Juju) -> None:
     juju.deploy('ubuntu')
     juju.wait(jubilant.all_active)
-
-
-pytestmark = pytest.mark.dual
 
 
 def test_wait_already_active(juju: jubilant.Juju) -> None:
