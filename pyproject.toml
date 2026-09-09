@@ -158,6 +158,7 @@ filterwarnings = [
 ]
 markers = [
   "machine: integration tests that require a Juju machine model",
+  "dual: integration tests that run against both k8s and machine models",
 ]
 pythonpath = [
   "."
